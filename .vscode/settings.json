@@ -1,0 +1,4 @@
+{
+  "python.formatting.provider": "pylint",
+  "python.linting.pylintPath": "/Library/Frameworks/Python.framework/Versions/3.5/bin/pylint"
+}
