@@ -1,77 +1,58 @@
-from urllib.request import urlopen
-import nltk
-nltk.download('stopwords')
-from nltk.corpus import stopwords
-from bs4 import BeautifulSoup
-import re
+from text_analyzer import TextAnalyzer
+from nltk.corpus import wordnet as wn
 
-# https://codegolf.stackexchange.com/a/47326
-def countSyllables(word):
+# with open('text/college-graduate/quran.txt', 'r') as textFile:
+#   data=textFile.read().replace('\n', '')
+
+# with open('text/college-graduate/meditations.txt', 'r') as textFile:
+#   data=textFile.read().replace('\n', '')
+
+def countSyllablesInWord(word):
   return len(''.join(c if c in"aeiouy"else' 'for c in word.rstrip('e')).split())
 
-def calcScore(wordList, sentenceCount):
-  totalWords = len(wordList)
-  totalSyllables = sum([ val for val in [countSyllables(word) for word in wordList] if val is not None])
+def upgradeWord(word):
+  all = [item for sublist in [sim.lemma_names() for sim in wn.synsets(word)] for item in sublist]
+  winner = None
+  val = 0
 
-  part1 = 1.015 * (totalWords / sentenceCount)
-  part2 = 84.6 * (totalSyllables / totalWords)
+  for w in all:
+    c = countSyllablesInWord(w)
+    if c > val:
+      winner = w
+      val = c
 
-  print("Word Count: " + str(totalWords))
-  print("Syllable Count: " + str(totalSyllables))
-  print("Sentence Count: " + str(sentenceCount))
+  return winner
 
-  return 206.835 - part1 - part2
+  
 
 
-
-
-# Higher Reading Level
-# response = urlopen('https://news.ycombinator.com/item?id=16325195')
-# response = urlopen('https://en.wikipedia.org/wiki/Guadalcanal_Campaign')
-
-# Middle Reading Level
-# response = urlopen('https://www.npr.org/sections/13.7/2018/02/01/581864513/would-college-students-retain-more-if-professors-dialed-back-the-pace')
-
-# Lower Reading Level
-# response = urlopen('http://www.magickeys.com/books/gingerbread/index.html')
-response = urlopen('https://www.dogonews.com/2018/2/5/meet-pigcasso-the-worlds-first-pig-artist')
+with open('text/7th-grade/article-1.txt', 'r') as textFile:
+  data=textFile.read().replace('\n', '')
 
 
 
 
-html = response.read().decode('utf-8')
-print(len(html))
+splitWords = data.split()
+wordLength = len(splitWords)
 
-clean = BeautifulSoup(html, 'html.parser').find('body').get_text()
-tokens = [tok for tok in clean.split()]
-
-print(clean)
-
-stopWords = list(stopwords.words('english'))
-regexToAvoid = r'[\[\]\(\)\{\}\\\/:]|www|http|\d'
+rangeCount = 10
+rangeAmount = wordLength // rangeCount
 
 
+for x in range(0, rangeCount):
+  start = x * rangeAmount
+  end = start + rangeAmount
 
-# Strip all single characters and any stopwords
-clean_tokens = [tok for tok in tokens if len(tok.lower()) > 1 and (tok.lower() not in stopWords) and not (re.search(regexToAvoid, tok)) and len(tok.lower()) < 20]
-print("Total no of tokens: " + str(len(clean_tokens)))
-# print(clean_tokens[0:100])
-
-print(clean_tokens)
-
-freq = nltk.FreqDist(clean_tokens)
-
-sentences = len(re.split(r'[.!?]+', clean))
-# print(sentences)
-
-score = calcScore(clean_tokens, sentences)
-print(score)
-
-# for k,v in freq.items():
-#   print(str(k) + ':' + str(v))
-
-freq.plot(50, cumulative=False)
+  txt = ' '.join(splitWords[start:end])
+  print("Words: " + str(start) + " - " + str(end))
+  datas[x] = TextAnalyzer(txt).fullPass()
+  print("\n\n")
 
 
 
-# print(syll("beukema"))
+
+# splitData = " ".join(data.split()[1000:2000])
+
+TextAnalyzer(data).fullPass()
+# TextAnalyzer(splitData).fullPass()
+import pdb; pdb.set_trace()
