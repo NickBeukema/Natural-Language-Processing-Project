@@ -1,74 +1,76 @@
+
 from text_analyzer import TextAnalyzer
-from nltk.corpus import wordnet as wn
+from text_analyzer import TextManager
+from text_analyzer import TextDataGrapher
+
+# 
+# Beowulf Comparison
+# 
+def beowulfCompare():
+  tm1 = TextManager('text/beowulf1.txt', title = "Lesslie Hall")
+  tm2 = TextManager('text/beowulf2.txt', title = "Gummere")
+
+  tg = TextDataGrapher(textManagers = [tm1, tm2], title = "Comparison between Beowulf Translations")
 
 
+#
+# Bill Gates Augmentation
+#
+def billAugment():
+  tm = TextManager('text/bill-gates.txt')
+  tm.entireData.display()
+  print(tm.entireData.initialText)
 
-def countSyllablesInWord(word):
-  return len(''.join(c if c in"aeiouy"else' 'for c in word.rstrip('e')).split())
-
-def upgradeWord(word):
-  all = [item for sublist in [sim.lemma_names() for sim in wn.synsets(word)] for item in sublist]
-  winner = None
-  val = 0
-
-  for w in all:
-    c = countSyllablesInWord(w)
-    if c > val:
-      winner = w
-      val = c
-
-  return winner
-
-  
-
-# with open('text/meditations.txt', 'r') as textFile:
-#   data=textFile.read().replace('\n', '')
-
-# with open('text/kid-article-1.txt', 'r') as textFile:
-#   data=textFile.read().replace('\n', '')
-
-with open('text/quran.txt', 'r') as textFile:
-  data=textFile.read().replace('\n', '')
+  tm.entireData.augment()
+  tm.entireData.calculate()
+  tm.entireData.display()
+  print(tm.entireData.initialText)
 
 
+def compareSixteenHundred():
+  tm1 = TextManager('text/1600s/don-quixote.txt', title = "Don Quixote")
+  tm2 = TextManager('text/1600s/the-pattern-of-painful-adventures.txt', title = "The Patterns of Painful Adventures")
+  tm3 = TextManager('text/1600s/tom-a-lincoln.txt', title = "Tom a Lincoln")
 
-splitWords = data.split()
-wordLength = len(splitWords)
-
-datas = {}
-
-rangeCount = 10
-rangeAmount = wordLength // rangeCount
+  tg = TextDataGrapher(textManagers = [tm1, tm2, tm3], title = "Comparison between Texts of the 1600s")
 
 
-for x in range(0, rangeCount):
-  start = x * rangeAmount
-  end = start + rangeAmount
+def compareSeventeenHundred():
+  tm1 = TextManager('text/1700s/gullivers-travels.txt', title = "Gulliver's Travels")
+  tm2 = TextManager('text/1700s/captain-singleton.txt', title = "Captain Singleton")
+  tm3 = TextManager('text/1700s/pamela-or-virtue-rewarded.txt', title = "Pamela or Virtue Rewarded")
 
-  txt = ' '.join(splitWords[start:end])
-  print("Words: " + str(start) + " - " + str(end))
+  tg = TextDataGrapher(textManagers = [tm1, tm2, tm3], title = "Comparison between Texts of the 1700s")
 
-  ta = TextAnalyzer(txt)
-  ta.calculate()
-  datas[x] = ta
+def compareEighteenHundred():
+  tm1 = TextManager('text/1800s/crime-and-punishment.txt', title = "Crime and Punishment")
+  tm2 = TextManager('text/1800s/frankenstein.txt', title = "Frankenstein")
+  tm3 = TextManager('text/1800s/pride-and-prejudice.txt', title = "Pride and Prejudice")
 
-  ta.fullPass()
+  tg = TextDataGrapher(textManagers = [tm1, tm2, tm3], title = "Comparison between Texts of the 1800s")
 
-  print("\n\n")
+def compareNineteenHundred():
+  tm1 = TextManager('text/1900s/the-jungle.txt', title = "The Jungle")
+  tm2 = TextManager('text/1900s/the-major.txt', title = "The Major")
+  tm3 = TextManager('text/1900s/to-kill-a-mockingbird.txt', title = "To Kill a Mockingbird")
 
+  tg = TextDataGrapher(textManagers = [tm1, tm2, tm3], title = "Comparison between Texts of the 1900s")
 
+def compareTwoThousand():
+  tm1 = TextManager('text/2000s/harry-potter.txt', title = "Harry Potter")
+  tm2 = TextManager('text/2000s/hunger-games.txt', title = "Hunger Games")
+  tm3 = TextManager('text/2000s/the-kite-runner.txt', title = "The Kite Runner")
 
+  tg = TextDataGrapher(textManagers = [tm1, tm2, tm3], title = "Comparison between Texts of the 2000s")
 
-# splitData = " ".join(data.split()[1000:2000])
+def augmentOurPaper():
+  tm = TextManager('text/writeup.txt')
+  tm.entireData.display()
+  print(tm.entireData.initialText)
 
-taMain = TextAnalyzer(data)
-taMain.calculate()
-taMain.display()
+  tm.entireData.augment()
+  tm.entireData.calculate()
+  tm.entireData.display()
+  print(tm.entireData.initialText)
 
-import pdb; pdb.set_trace()
-
-taMain.augment(False)
-taMain.calculate()
-taMain.display()
-
-import pdb; pdb.set_trace()
+augmentOurPaper()

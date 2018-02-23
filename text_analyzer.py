@@ -8,7 +8,10 @@ from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 from bs4 import BeautifulSoup
 import re
+import matplotlib.pyplot as plt
 
+# Base class that does all the heavy lifting of
+# parsing through text, scoring, and augmenting
 class TextAnalyzer:
   SENTENCE_SPLIT_REGEX = r'[.!?]+'
 
@@ -16,11 +19,17 @@ class TextAnalyzer:
   SYLLABLE_OVER_WORD_CONSTANT = 84.6
   TOTAL_CONSTANT = 206.835
 
+  # Use NLTK's built in stop words for accurate augmenting
   STOP_WORDS = set(stopwords.words('english'))
+
+  # We found certain words come up often, and never
+  # want to see them
   BANNED_WORDS = [
+    'pee',
+    'wee',
     'meth',
     'methedrine',
-    'methamphetamine_hydrochloride',
+    'methamphetamine_hydrochloride', # Synonym of ice.. dang kids
     'deoxyephedrine'
   ]
 
@@ -33,6 +42,8 @@ class TextAnalyzer:
     self.calculate()
     self.display()
 
+  # Calculate score based on provided Flesch-Kincaid readability
+  # https://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests
   def calculate(self):
     self.sentenceCount = len(re.split(self.SENTENCE_SPLIT_REGEX, self.initialText))
 
@@ -48,6 +59,7 @@ class TextAnalyzer:
 
     self.score = self.TOTAL_CONSTANT - part1 - part2
 
+  # Basic print out of stats
   def display(self):
     print("Sentence Count:\t" + str(self.sentenceCount))
     print("Word Count:\t" + str(self.wordCount))
@@ -127,17 +139,27 @@ class TextAnalyzer:
     # 3. Find similar words for each of the words to upgrade, making sure the new word has more syllables
     # 4. Profit
 
+    self.oldText = self.initialText
+
     nouns = 0
     verbs = 0
     articles = 0
+
+    totalCharactersAnalyzed = 0
 
     # Tag the tokenzid version of the text w/ the POS of each word
     tagged = nltk.pos_tag(self.tokens)
 
     for word in tagged:
 
+
       wordType = word[1]
       wordText = word[0]
+
+      # Generally keep track of how far in the text we are.
+      # Note: This does NOT include punctuation, so it will
+      # generally be less than the actual position
+      totalCharactersAnalyzed += len(wordText)
 
 
       # Do not replace proper nouns or stop words
@@ -147,35 +169,42 @@ class TextAnalyzer:
       # Nouns
       if 'NN' in wordType:
         nouns += 1
-        # Replace all instances of the word in the text
-
-        # TODO: This causes bugs because it replaces all occurances, and
-        # can potentially cause repeating words with the right combination
-        #
-        # eg. ice hockey, ice upgrades to water, and hocky upgrades to ice hockey
-        # later down the article if ice gets upgraded again, the ice hockey gets
-        # changed to water hockey, resulting in water water hockey
-        #
-        self.initialText = self.initialText.replace(wordText, self.upgrade_word(word, upgrade))
-
       # Verbs
       elif 'VB' in wordType:
         verbs += 1
         # Replace all instances of the word in the text
-        self.initialText = self.initialText.replace(wordText, self.upgrade_word(word, upgrade))
+      else:
+        # If it is not a noun or verb, skip to the next word
+        continue
+
+
+      # Upgrade the current word
+      upgradedWord = self.upgrade_word(word, upgrade)
+
+      # Get general position the current word is at (hard to do with tokens 
+      # because they don't take into account punctuation)
+      startingGeneralPosition = totalCharactersAnalyzed - len(wordText)
+
+      # Make sure the traversed text stays the same, and replace 
+      # the first occurance of our word after that with the upgraded
+      # word. This is a step in the direction of accurately replacing
+      # the word, without replacing subsets of words, eg: 'use' in 'confuse'
+      self.initialText = self.initialText[:startingGeneralPosition] + self.initialText[startingGeneralPosition:].replace(wordText, upgradedWord, 1)
 
 
 
-
-
-
+  # Loops over the __countSyllablesInWord for each token
   def __countAllSyllables(self, tokens):
     return sum([ val for val in [self.__countSyllablesInWord(word) for word in tokens] if val is not None])
 
-  # https://codegolf.stackexchange.com/a/47326
+  # Source: https://codegolf.stackexchange.com/a/47326
+  # Groups together consecutive vowels and counts them,
+  # this method is right around ~80% accurage, and 
+  # definitely close enough for our purposes
   def __countSyllablesInWord(self, word):
     return len(''.join(c if c in"aeiouy"else' 'for c in word.rstrip('e')).split())
 
+  # Based on score, classify
   def __classifyText(self):
     if self.score is None:
       return None
@@ -194,17 +223,78 @@ class TextAnalyzer:
     else:
       return "College Graduate"
 
-# taggedWord = ('playing', 'VBG')
-# ta = TextAnalyzer('playing')
-# ta.upgrade()
+# Manages a text by finding average score, but also
+# finding a split score throughout the text, based
+# on the rangeCount provided
+class TextManager:
+  def __init__(self, filename, title = "", rangeCount = 10):
+    self.filename = filename
+    self.rangeCount = rangeCount
+    self.title = title
+    data = self.analyzeText(self.filename, rangeCount = self.rangeCount)
 
-# ta2 = TextAnalyzer('Just call it a sister thing. Whenever another hockey team has sisters on the rosters, Jocelyne Lamoureux-Davidson and Monique Lamoureux-Morando take notice')
+    self.splitData = data['splitData']
+    self.entireData = data['entireData']
 
-# ta2.calculate()
-# ta2.display()
+  def analyzeText(self, filename, rangeCount):
+    with open(filename, 'r') as textFile:
+      data=textFile.read().replace('\n', '')
 
-# ta2.upgrade()
-# ta2.calculate()
-# ta2.display()
+    splitWords = data.split()
+    wordLength = len(splitWords)
 
-# import pdb; pdb.set_trace()
+    splitData = []
+
+    rangeAmount = wordLength // rangeCount
+
+    # Loops through and gather stats for each
+    # split of text
+    for x in range(0, rangeCount):
+      start = x * rangeAmount
+      end = start + rangeAmount
+
+      txt = ' '.join(splitWords[start:end])
+
+      ta = TextAnalyzer(txt)
+      ta.calculate()
+      splitData.append(ta)
+
+    taMain = TextAnalyzer(data)
+    taMain.calculate()
+
+    return {
+      "splitData": splitData,
+      "entireData": taMain
+    }
+
+# Handles multiple textManagers, graphs the splits and
+# the averages on one graph
+class TextDataGrapher:
+
+  def __init__(self, textManagers = [], title = "Line Graph of Text Data"):
+
+    if len(textManagers) == 0:
+      return
+
+    plt.title(title)
+
+    # Prepare Data
+    self.xCount = len(textManagers[0].splitData)
+    self.xAxis = list(range(self.xCount))
+    self.yAxees = []
+
+    for manager in textManagers:
+      splitData = list(map(lambda x: x.score, manager.splitData))
+      averageData = list(map(lambda x: manager.entireData.score, manager.splitData))
+
+      self.yAxees.append((manager.title, splitData, averageData))
+
+    # Prepare Graph
+    for axis in self.yAxees:
+      plt.plot(self.xAxis, axis[1], label = axis[0])
+      plt.plot(self.xAxis, axis[2], label = axis[0] + " - Average", linestyle = "dashed")
+
+    plt.xlabel('Section of Text')
+    plt.ylabel('Score')
+    plt.legend(loc=(1.04, 0))
+    plt.show()
